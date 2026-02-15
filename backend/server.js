@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 
+const db = require('./db/database');
 const authRoutes = require('./routes/auth');
 const deviceRoutes = require('./routes/devices');
 const catRoutes = require('./routes/cats');
