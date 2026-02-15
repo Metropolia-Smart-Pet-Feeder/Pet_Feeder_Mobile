@@ -51,17 +51,3 @@ CREATE TABLE IF NOT EXISTS events (
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
 );
-
-DROP INDEX IF EXISTS idx_user_devices_user_id ON user_devices;
-DROP INDEX IF EXISTS idx_user_devices_device_id ON user_devices;
-DROP INDEX IF EXISTS idx_cats_device_id ON cats;
-DROP INDEX IF EXISTS idx_schedules_device_id ON schedules;
-DROP INDEX IF EXISTS idx_events_device_id ON events;
-DROP INDEX IF EXISTS idx_events_timestamp ON events;
-
-CREATE INDEX idx_user_devices_user_id ON user_devices(user_id);
-CREATE INDEX idx_user_devices_device_id ON user_devices(device_id);
-CREATE INDEX idx_cats_device_id ON cats(device_id);
-CREATE INDEX idx_schedules_device_id ON schedules(device_id);
-CREATE INDEX idx_events_device_id ON events(device_id);
-CREATE INDEX idx_events_timestamp ON events(timestamp);
