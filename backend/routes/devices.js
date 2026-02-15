@@ -20,7 +20,7 @@ router.post('/register', async (req, res) => {
             device = await db.createDevice(device_id);
         }
 
-        const link = await db.linkUserToDevice(userId, device.id);
+        const link = await db.linkUserToDevice(userId, device_id);
         if (link.error) {
             return res.status(400).json({ error: link.error });
         }
