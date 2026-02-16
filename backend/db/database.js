@@ -88,6 +88,15 @@ async function linkUserToDevice(userId, deviceId) {
     const device = await getDeviceByDeviceId(deviceId);
     if (!device) return { error: 'Device not found' };
 
+    // Check if already linked
+    const [existing] = await pool.query(
+        'SELECT id FROM user_devices WHERE user_id = ? AND device_id = ?',
+        [userId, device.id]
+    );
+    if (existing.length > 0) {
+        return { error: 'Already linked to this device' };
+    }
+
     const userCount = await getDeviceUserCount(device.id);
     if (userCount >= device.max_users) return { error: 'Device user limit reached' };
 
