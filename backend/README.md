@@ -95,8 +95,7 @@ Topic: `petfeeder/{device_id}/event`
 ```json
 { "type": "dispense_status", "amount": 50, "success": true }
 { "type": "schedule_saved" }
-{ "type": "cat_identified", "rfid_tag": "ABC123", "name": "Whiskers" }
-{ "type": "unknown_rfid", "rfid_tag": "XYZ789" }
+{ "type": "cat_identified", "rfid_tag": "ABC123"}
 { "type": "cat_came"}
 { "type": "cat_left"}
 { "type": "tank_level", "percent": 75 }

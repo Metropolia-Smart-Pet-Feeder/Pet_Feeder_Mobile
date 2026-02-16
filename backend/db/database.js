@@ -299,6 +299,36 @@ async function deleteOldEvents(daysToKeep = 15) {
     );
 }
 
+async function createPhoto(deviceId, filename, filePath) {
+    const device = await getDeviceByDeviceId(deviceId);
+    if (!device) return { error: 'Device not found' };
+
+    const [result] = await pool.query(
+        'INSERT INTO photos (device_id, filename, path) VALUES (?, ?, ?)',
+        [device.id, filename, filePath]
+    );
+    return { id: result.insertId, device_id: device.id, filename, path: filePath };
+}
+
+async function getPhotosByDeviceId(deviceId) {
+    const device = await getDeviceByDeviceId(deviceId);
+    if (!device) return [];
+
+    const [rows] = await pool.query(
+        'SELECT id, filename, captured_at FROM photos WHERE device_id = ? ORDER BY captured_at DESC',
+        [device.id]
+    );
+    return rows;
+}
+
+async function getPhotoById(photoId) {
+    const [rows] = await pool.query(
+        'SELECT * FROM photos WHERE id = ?',
+        [photoId]
+    );
+    return rows[0];
+}
+
 module.exports = {
     pool,
     initDatabase,
@@ -326,5 +356,8 @@ module.exports = {
     createEvent,
     getEventsByDevice,
     getEventsByType,
-    deleteOldEvents
+    deleteOldEvents,
+    createPhoto,
+    getPhotosByDeviceId,
+    getPhotoById
 };
