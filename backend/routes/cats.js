@@ -104,7 +104,7 @@ router.delete('/:rfid', async (req, res) => {
             return res.status(404).json({ error: 'Cat not found' });
         }
 
-        await db.deleteCat(cat.id);
+        await db.deleteCat(device_id, rfid);
         res.json({ message: 'Cat deleted' });
 
     } catch (err) {
