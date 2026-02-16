@@ -69,7 +69,7 @@ router.put('/:device_id/rename', async (req, res) => {
     }
 });
 
-// Unlink device from user
+/// Unlink device from user
 router.delete('/:device_id', async (req, res) => {
     try {
         const { device_id } = req.params;
@@ -80,8 +80,7 @@ router.delete('/:device_id', async (req, res) => {
             return res.status(403).json({ error: 'Access denied' });
         }
 
-        const device = await db.getDeviceByDeviceId(device_id);
-        const result = await db.unlinkUserFromDevice(userId, device.id);
+        const result = await db.unlinkUserFromDevice(userId, device_id);
         if (result.error) {
             return res.status(400).json({ error: result.error });
         }

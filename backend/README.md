@@ -65,8 +65,8 @@ All endpoints except auth require `Authorization: Bearer <token>` header.
 |--------|----------|-------------|------|
 | POST | `/api/cats` | Create cat | `{ device_id, rfid_tag, name }` |
 | GET | `/api/cats/device/:device_id` | List cats for device | - |
-| PUT | `/api/cats/:cat_id/rename` | Rename cat | `{ name }` |
-| DELETE | `/api/cats/:cat_id` | Delete cat | - |
+| PUT | `/api/cats/:rfid/rename` | Rename cat | `{ name }` |
+| DELETE | `/api/cats/:rfid` | Delete cat | - |
 
 ### Schedules
 

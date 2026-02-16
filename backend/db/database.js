@@ -119,7 +119,10 @@ async function unlinkUserFromDevice(userId, deviceId) {
     const userCount = await getDeviceUserCount(device.id);
     if (userCount === 0) {
         await deleteDevice(deviceId);
+        return { deviceDeleted: true };
     }
+
+    return { deviceDeleted: false };
 }
 
 async function getDeviceUserCount(deviceDbId) {
