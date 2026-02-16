@@ -74,7 +74,7 @@ router.put('/:rfid/rename', async (req, res) => {
             return res.status(404).json({ error: 'Cat not found' });
         }
 
-        const updatedCat = await db.updateCatName(cat.id, name);
+        const updatedCat = await db.updateCatName(device_id, rfid, name);
         res.json({ message: 'Cat renamed', cat: updatedCat });
 
     } catch (err) {
