@@ -44,7 +44,7 @@ router.get('/device/:device_id', async (req, res) => {
             return res.status(403).json({ error: 'Access denied' });
         }
 
-        const cats = await db.getCatsByDeviceId(device_id);
+        const cats = await db.getCatsByDevice(device_id);
         res.json(cats);
 
     } catch (err) {
@@ -53,31 +53,28 @@ router.get('/device/:device_id', async (req, res) => {
     }
 });
 
-// Rename a cat
-router.put('/:cat_id/rename', async (req, res) => {
+// Rename a cat by RFID
+router.put('/:rfid/rename', async (req, res) => {
     try {
-        const { cat_id } = req.params;
-        const { name } = req.body;
+        const { rfid } = req.params;
+        const { device_id, name } = req.body;
         const userId = req.user.id;
 
-        if (!name) {
-            return res.status(400).json({ error: 'name is required' });
+        if (!device_id || !name) {
+            return res.status(400).json({ error: 'device_id and name are required' });
         }
 
-        // Get cat to find its device
-        const cat = await db.getCatById(cat_id);
-        if (!cat) {
-            return res.status(404).json({ error: 'Cat not found' });
-        }
-
-        // Verify user has access to this cat's device
-        const device = await db.getDeviceById(cat.device_id);
-        const hasAccess = await db.isUserLinkedToDevice(userId, device.device_id);
+        const hasAccess = await db.isUserLinkedToDevice(userId, device_id);
         if (!hasAccess) {
             return res.status(403).json({ error: 'Access denied' });
         }
 
-        const updatedCat = await db.updateCatName(cat_id, name);
+        const cat = await db.getCatByRfid(device_id, rfid);
+        if (!cat) {
+            return res.status(404).json({ error: 'Cat not found' });
+        }
+
+        const updatedCat = await db.updateCatName(cat.id, name);
         res.json({ message: 'Cat renamed', cat: updatedCat });
 
     } catch (err) {
@@ -86,24 +83,28 @@ router.put('/:cat_id/rename', async (req, res) => {
     }
 });
 
-// Delete a cat
-router.delete('/:cat_id', async (req, res) => {
+// Delete a cat by RFID
+router.delete('/:rfid', async (req, res) => {
     try {
-        const { cat_id } = req.params;
+        const { rfid } = req.params;
+        const { device_id } = req.body;
         const userId = req.user.id;
 
-        const cat = await db.getCatById(cat_id);
-        if (!cat) {
-            return res.status(404).json({ error: 'Cat not found' });
+        if (!device_id) {
+            return res.status(400).json({ error: 'device_id is required' });
         }
 
-        const device = await db.getDeviceById(cat.device_id);
-        const hasAccess = await db.isUserLinkedToDevice(userId, device.device_id);
+        const hasAccess = await db.isUserLinkedToDevice(userId, device_id);
         if (!hasAccess) {
             return res.status(403).json({ error: 'Access denied' });
         }
 
-        await db.deleteCat(cat_id);
+        const cat = await db.getCatByRfid(device_id, rfid);
+        if (!cat) {
+            return res.status(404).json({ error: 'Cat not found' });
+        }
+
+        await db.deleteCat(cat.id);
         res.json({ message: 'Cat deleted' });
 
     } catch (err) {
