@@ -5,6 +5,34 @@ const auth = require('../middleware/auth');
 
 router.use(auth);
 
+// Create a new cat
+router.post('/', async (req, res) => {
+    try {
+        const { device_id, rfid_tag, name } = req.body;
+        const userId = req.user.id;
+
+        if (!device_id || !rfid_tag || !name) {
+            return res.status(400).json({ error: 'device_id, rfid_tag, and name are required' });
+        }
+
+        const hasAccess = await db.isUserLinkedToDevice(userId, device_id);
+        if (!hasAccess) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+
+        const cat = await db.createCat(device_id, rfid_tag, name);
+        if (cat.error) {
+            return res.status(400).json({ error: cat.error });
+        }
+
+        res.status(201).json({ message: 'Cat registered', cat });
+
+    } catch (err) {
+        console.error('Create cat error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 // List cats for a device
 router.get('/device/:device_id', async (req, res) => {
     try {
