@@ -7,6 +7,7 @@ const deviceRoutes = require('./routes/devices');
 const catRoutes = require('./routes/cats');
 const scheduleRoutes = require('./routes/schedules');
 const eventRoutes = require('./routes/events');
+const photoRoutes = require('./routes/photos')
 
 // Initialize MQTT client (starts connection and subscribes to events)
 require('./mqtt/client');
@@ -21,6 +22,7 @@ app.use('/api/devices', deviceRoutes);
 app.use('/api/cats', catRoutes);
 app.use('/api/schedules', scheduleRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/photos', photoRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
