@@ -36,7 +36,7 @@ router.post('/register', async (req, res) => {
 // List user's devices
 router.get('/', async (req, res) => {
     try {
-        const devices = await db.getDevicesByUserId(req.user.id);
+        const devices = await db.getDevicesByUser(req.user.id);
         res.json(devices);
     } catch (err) {
         console.error('List devices error:', err);
