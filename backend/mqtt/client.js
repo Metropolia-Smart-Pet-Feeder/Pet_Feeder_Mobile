@@ -26,7 +26,9 @@ client.on('message', async (topic, message) => {
 
         // For cat_identified events, resolve the cat name from the rfid
         if (payload.type === 'cat_identified' && payload.rfid) {
+            console.log(`[cat_identified] deviceId="${deviceId}" rfid="${payload.rfid}"`);
             const cat = await db.getCatByRfid(deviceId, payload.rfid);
+            console.log(`[cat_identified] lookup result:`, cat);
             payload.cat_name = cat ? cat.name : 'Unknown cat';
         }
 
