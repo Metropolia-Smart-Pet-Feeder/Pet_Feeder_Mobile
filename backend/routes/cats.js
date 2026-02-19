@@ -8,11 +8,11 @@ router.use(auth);
 // Create a new cat
 router.post('/', async (req, res) => {
     try {
-        const { device_id, rfid_tag, name } = req.body;
+        const { device_id, rfid, name } = req.body;
         const userId = req.user.id;
 
-        if (!device_id || !rfid_tag || !name) {
-            return res.status(400).json({ error: 'device_id, rfid_tag, and name are required' });
+        if (!device_id || !rfid || !name) {
+            return res.status(400).json({ error: 'device_id, rfid, and name are required' });
         }
 
         const hasAccess = await db.isUserLinkedToDevice(userId, device_id);
@@ -20,7 +20,7 @@ router.post('/', async (req, res) => {
             return res.status(403).json({ error: 'Access denied' });
         }
 
-        const cat = await db.createCat(device_id, rfid_tag, name);
+        const cat = await db.createCat(device_id, rfid, name);
         if (cat.error) {
             return res.status(400).json({ error: cat.error });
         }

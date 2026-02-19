@@ -58,20 +58,19 @@ router.get('/device/:device_id', auth, async (req, res) => {
 });
 
 // Get a photo file
-router.get('/:photo_id', auth, async (req, res) => {
+router.get('/device/:device_id/:photo_id', auth, async (req, res) => {
     try {
-        const { photo_id } = req.params;
+        const { device_id, photo_id } = req.params;
         const userId = req.user.id;
+
+        const hasAccess = await db.isUserLinkedToDevice(userId, device_id);
+        if (!hasAccess) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
 
         const photo = await db.getPhotoById(photo_id);
         if (!photo) {
             return res.status(404).json({ error: 'Photo not found' });
-        }
-
-        const device = await db.getDeviceById(photo.device_id);
-        const hasAccess = await db.isUserLinkedToDevice(userId, device.device_id);
-        if (!hasAccess) {
-            return res.status(403).json({ error: 'Access denied' });
         }
 
         res.sendFile(path.resolve(photo.path));
