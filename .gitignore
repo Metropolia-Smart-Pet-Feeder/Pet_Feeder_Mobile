@@ -140,3 +140,16 @@ vite.config.ts.timestamp-*
 
 # upload directory
 uploads/
+
+# Expo
+.expo/
+dist/
+*.hprof
+
+# React Native
+*.ipa
+*.apk
+*.aab
+
+# EAS Build
+.eas/
