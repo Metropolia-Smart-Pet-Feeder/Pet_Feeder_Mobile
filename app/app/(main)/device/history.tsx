@@ -83,6 +83,10 @@ export default function HistoryScreen() {
         return 'restaurant-outline';
       case 'cat_identified':
         return 'paw-outline';
+      case 'cat_came':
+        return 'enter-outline';
+      case 'cat_leave':
+        return 'exit-outline';
       case 'tank_level':
         return 'server-outline';
       case 'error':
@@ -97,6 +101,10 @@ export default function HistoryScreen() {
       case 'dispense':
         return '#34C759';
       case 'cat_identified':
+        return '#FF9500';
+      case 'cat_came':
+        return '#AF52DE';
+      case 'cat_leave':
         return '#FF9500';
       case 'tank_level':
         return '#007AFF';
@@ -113,6 +121,10 @@ export default function HistoryScreen() {
         return `Dispensed ${event.data?.amount || 1} portion(s)`;
       case 'cat_identified':
         return `${event.data?.cat_name || 'Unknown cat'} detected`;
+      case 'cat_came':
+        return 'A cat arrived at the feeder';
+      case 'cat_leave':
+        return 'A cat left the feeder';
       case 'tank_level':
         return `Tank level: ${event.data?.level || 0}%`;
       case 'error':
@@ -211,6 +223,7 @@ export default function HistoryScreen() {
         </View>
       ) : activeTab === 'events' ? (
         <FlatList
+          key="events"
           data={events}
           renderItem={renderEvent}
           keyExtractor={(item) => item.id.toString()}
@@ -224,6 +237,7 @@ export default function HistoryScreen() {
         />
       ) : (
         <FlatList
+          key="photos"
           data={photos}
           renderItem={renderPhoto}
           keyExtractor={(item) => item.id.toString()}

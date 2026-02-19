@@ -21,12 +21,18 @@ client.on('message', async (topic, message) => {
         // Extract device_id from topic: petfeeder/{device_id}/event
         const parts = topic.split('/');
         const deviceId = parts[1];
-        
+
         const payload = JSON.parse(message.toString());
-        
+
+        // For cat_identified events, resolve the cat name from the rfid
+        if (payload.type === 'cat_identified' && payload.rfid) {
+            const cat = await db.getCatByRfid(deviceId, payload.rfid);
+            payload.cat_name = cat ? cat.name : 'Unknown cat';
+        }
+
         // Log the event to database
         await db.createEvent(deviceId, payload.type, payload);
-        
+
     } catch (err) {
         console.error('Error processing MQTT message:', err);
     }

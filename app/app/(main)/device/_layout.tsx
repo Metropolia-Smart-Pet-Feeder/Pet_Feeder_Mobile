@@ -1,9 +1,11 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
+import { TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDeviceStore } from '../../../stores/deviceStore';
 
 export default function DeviceLayout() {
   const currentDevice = useDeviceStore((state) => state.currentDevice);
+  const router = useRouter();
 
   return (
     <Tabs
@@ -11,6 +13,11 @@ export default function DeviceLayout() {
         headerShown: true,
         headerTitle: currentDevice?.name || 'Device',
         tabBarActiveTintColor: '#007AFF',
+        headerLeft: () => (
+          <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 16 }}>
+            <Ionicons name="chevron-back" size={24} color="#007AFF" />
+          </TouchableOpacity>
+        ),
       }}
     >
       <Tabs.Screen
