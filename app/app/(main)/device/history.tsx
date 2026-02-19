@@ -87,6 +87,8 @@ export default function HistoryScreen() {
         return 'enter-outline';
       case 'cat_leave':
         return 'exit-outline';
+      case 'food_eaten':
+        return 'checkmark-circle-outline';
       case 'tank_level':
         return 'server-outline';
       case 'error':
@@ -106,6 +108,8 @@ export default function HistoryScreen() {
         return '#AF52DE';
       case 'cat_leave':
         return '#FF9500';
+      case 'food_eaten':
+        return '#34C759';
       case 'tank_level':
         return '#007AFF';
       case 'error':
@@ -125,6 +129,8 @@ export default function HistoryScreen() {
         return 'A cat arrived at the feeder';
       case 'cat_leave':
         return 'A cat left the feeder';
+      case 'food_eaten':
+        return `${event.data?.amount || 0}g of food consumed`;
       case 'tank_level':
         return `Tank level: ${event.data?.level || 0}%`;
       case 'error':

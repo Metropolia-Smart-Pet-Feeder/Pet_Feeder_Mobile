@@ -68,13 +68,13 @@ export default function ScheduleScreen() {
 
     try {
       await api.updateSchedules(currentDevice.device_id, updatedSchedules);
-      
+
       // Also send to device via MQTT
       mqttService.updateSchedule(currentDevice.device_id, updatedSchedules);
-      
-      setSchedules(updatedSchedules);
+
       setModalVisible(false);
       resetForm();
+      await fetchSchedules();
     } catch (error) {
       Alert.alert('Error', 'Failed to save schedule');
     }
@@ -96,7 +96,7 @@ export default function ScheduleScreen() {
             try {
               await api.updateSchedules(currentDevice.device_id, updatedSchedules);
               mqttService.updateSchedule(currentDevice.device_id, updatedSchedules);
-              setSchedules(updatedSchedules);
+              await fetchSchedules();
             } catch (error) {
               Alert.alert('Error', 'Failed to delete schedule');
             }

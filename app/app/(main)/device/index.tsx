@@ -9,6 +9,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useDeviceStore } from '../../../stores/deviceStore';
 import mqttService from '../../../services/mqtt';
+import * as api from '../../../services/api';
 
 export default function DeviceControlScreen() {
   const currentDevice = useDeviceStore((state) => state.currentDevice);
@@ -20,16 +21,35 @@ export default function DeviceControlScreen() {
   useEffect(() => {
     if (!currentDevice) return;
 
+    // Load last known values from DB
+    const loadInitialState = async () => {
+      try {
+        const response = await api.getEvents(currentDevice.device_id, 50, 0);
+        const events: any[] = Array.isArray(response.data) ? response.data : [];
+
+        const lastTankEvent = events.find((e) => e.type === 'tank_level');
+        if (lastTankEvent) setTankLevel(lastTankEvent.data?.level ?? null);
+
+        const lastDispenseEvent = events.find((e) => e.type === 'dispense');
+        if (lastDispenseEvent) {
+          const date = new Date(lastDispenseEvent.timestamp);
+          setLastFeed(date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        }
+      } catch (error) {
+        console.error('Failed to load initial state:', error);
+      }
+    };
+
     const connectMqtt = async () => {
       try {
         await mqttService.connect();
         setIsConnected(true);
-        
-        mqttService.subscribeToDevice(currentDevice.device_id, (topic, payload) => {
+
+        mqttService.subscribeToDevice(currentDevice.device_id, (_topic, payload) => {
           if (payload.type === 'tank_level') {
             setTankLevel(payload.level);
-          } else if (payload.type === 'dispense_status') {
-            setLastFeed(new Date().toLocaleTimeString());
+          } else if (payload.type === 'dispense') {
+            setLastFeed(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
             setIsFeeding(false);
           }
         });
@@ -38,6 +58,7 @@ export default function DeviceControlScreen() {
       }
     };
 
+    loadInitialState();
     connectMqtt();
 
     return () => {

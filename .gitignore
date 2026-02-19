@@ -125,6 +125,9 @@ dist
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
 
+# VSCode
+.vscode/
+
 # yarn v3
 .pnp.*
 .yarn/*
@@ -145,6 +148,9 @@ uploads/
 .expo/
 dist/
 *.hprof
+expo-env.d.ts
+android/
+ios/
 
 # React Native
 *.ipa
