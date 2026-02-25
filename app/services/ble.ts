@@ -1,91 +1,76 @@
-import { BleManager, Device, Characteristic } from 'react-native-ble-plx';
+import {
+  ESPProvisionManager,
+  ESPDevice,
+  ESPTransport,
+  ESPSecurity,
+} from '@orbital-systems/react-native-esp-idf-provisioning';
 import { PermissionsAndroid, Platform } from 'react-native';
 
-// UUIDs matching your ESP32 firmware
-const SERVICE_UUID = '4fafc201-1fb5-459e-8fcc-c5c9c331914b';
-const CHARACTERISTIC_UUID = 'beb5483e-36e1-4688-b7f5-ea07361b26a8';
+export type FoundDevice = {
+  name: string;
+  id: string;
+};
 
 class BleService {
-  private manager: BleManager;
-  private connectedDevice: Device | null = null;
+  private connectedDevice: ESPDevice | null = null;
 
-  constructor() {
-    this.manager = new BleManager();
-  }
+  private async requestPermissions(): Promise<boolean> {
+    if (Platform.OS !== 'android') return true;
 
-  async requestPermissions(): Promise<boolean> {
-    if (Platform.OS === 'android') {
-      const apiLevel = Platform.Version;
+    const apiLevel = Platform.Version as number;
 
-      if (apiLevel >= 31) {
-        // Android 12+
-        const results = await PermissionsAndroid.requestMultiple([
-          PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
-          PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-        ]);
-
-        return (
-          results['android.permission.BLUETOOTH_SCAN'] === 'granted' &&
-          results['android.permission.BLUETOOTH_CONNECT'] === 'granted' &&
-          results['android.permission.ACCESS_FINE_LOCATION'] === 'granted'
-        );
-      } else {
-        // Android 11 and below
-        const result = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
-        );
-        return result === 'granted';
-      }
+    if (apiLevel >= 31) {
+      const results = await PermissionsAndroid.requestMultiple([
+        PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+        PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+      ]);
+      return (
+        results['android.permission.BLUETOOTH_SCAN'] === 'granted' &&
+        results['android.permission.BLUETOOTH_CONNECT'] === 'granted' &&
+        results['android.permission.ACCESS_FINE_LOCATION'] === 'granted'
+      );
+    } else {
+      const result = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+      );
+      return result === 'granted';
     }
-    return true; // iOS handles permissions via Info.plist
   }
 
   async scanForDevices(
-    onDeviceFound: (device: Device) => void,
-    timeout = 10000
+    onDeviceFound: (device: FoundDevice) => void
   ): Promise<void> {
-    const hasPermissions = await this.requestPermissions();
-    if (!hasPermissions) {
+    const granted = await this.requestPermissions();
+    if (!granted) {
       throw new Error('Bluetooth permissions not granted');
     }
 
-    return new Promise((resolve, reject) => {
-      const foundDevices = new Set<string>();
+    const devices = await ESPProvisionManager.searchESPDevices(
+      'PROV_PETFEEDER_',
+      ESPTransport.ble,
+      ESPSecurity.secure
+    );
 
-      this.manager.startDeviceScan(
-        [SERVICE_UUID],
-        { allowDuplicates: false },
-        (error, device) => {
-          if (error) {
-            this.manager.stopDeviceScan();
-            reject(error);
-            return;
-          }
-
-          if (device && device.name && !foundDevices.has(device.id)) {
-            foundDevices.add(device.id);
-            onDeviceFound(device);
-          }
-        }
-      );
-
-      setTimeout(() => {
-        this.manager.stopDeviceScan();
-        resolve();
-      }, timeout);
-    });
+    for (const device of devices) {
+      onDeviceFound({ name: device.name, id: device.name });
+    }
   }
 
   stopScan(): void {
-    this.manager.stopDeviceScan();
+    // searchESPDevices handles its own lifecycle
   }
 
-  async connectToDevice(deviceId: string): Promise<Device> {
-    const device = await this.manager.connectToDevice(deviceId);
-    await device.discoverAllServicesAndCharacteristics();
+  async connectToDevice(deviceName: string): Promise<void> {
+    const device = new ESPDevice({
+      name: deviceName,
+      transport: ESPTransport.ble,
+      security: ESPSecurity.secure,
+    });
+
+    // Empty pop since ESP firmware uses NULL for proof of possession
+    await device.connect('');
     this.connectedDevice = device;
-    return device;
   }
 
   async sendWifiCredentials(ssid: string, password: string): Promise<string> {
@@ -93,37 +78,18 @@ class BleService {
       throw new Error('No device connected');
     }
 
-    const payload = JSON.stringify({ ssid, password });
-    
-    await this.connectedDevice.writeCharacteristicWithResponseForService(
-      SERVICE_UUID,
-      CHARACTERISTIC_UUID,
-      Buffer.from(payload).toString('base64')
-    );
+    await this.connectedDevice.provision(ssid, password);
 
-    // Read response (device ID)
-    const characteristic = await this.connectedDevice.readCharacteristicForService(
-      SERVICE_UUID,
-      CHARACTERISTIC_UUID
-    );
-
-    if (characteristic.value) {
-      const response = Buffer.from(characteristic.value, 'base64').toString('utf-8');
-      return JSON.parse(response).device_id;
-    }
-
-    throw new Error('No response from device');
+    // Derive device_id from BLE name: "PROV_PETFEEDER_A1B2C3" -> "PETFEEDER_A1B2C3"
+    const deviceId = this.connectedDevice.name.replace(/^PROV_/, '');
+    return deviceId;
   }
 
   async disconnect(): Promise<void> {
     if (this.connectedDevice) {
-      await this.manager.cancelDeviceConnection(this.connectedDevice.id);
+      this.connectedDevice.disconnect();
       this.connectedDevice = null;
     }
-  }
-
-  destroy(): void {
-    this.manager.destroy();
   }
 }
 

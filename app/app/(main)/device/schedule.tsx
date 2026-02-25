@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,9 +8,9 @@ import {
   Modal,
   Alert,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Picker } from '@react-native-picker/picker';
 import { useDeviceStore } from '../../../stores/deviceStore';
 import * as api from '../../../services/api';
 import mqttService from '../../../services/mqtt';
@@ -22,6 +22,64 @@ interface Schedule {
   amount: number;
 }
 
+const ITEM_HEIGHT = 48;
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const MINUTES = Array.from({ length: 60 }, (_, i) => i);
+
+function WheelPicker({ items, initialIndex, onChange, width = 80 }: {
+  items: number[];
+  initialIndex: number;
+  onChange: (value: number) => void;
+  width?: number;
+}) {
+  const ref = useRef<ScrollView>(null);
+  const laid = useRef(false);
+
+  const scrollToIndex = (idx: number) => {
+    ref.current?.scrollTo({ y: idx * ITEM_HEIGHT, animated: false });
+  };
+
+  const pickIndex = (y: number) =>
+    Math.max(0, Math.min(Math.round(y / ITEM_HEIGHT), items.length - 1));
+
+  return (
+    <View style={{ width, height: ITEM_HEIGHT * 3, overflow: 'hidden' }}>
+      <View style={{
+        position: 'absolute',
+        top: ITEM_HEIGHT,
+        height: ITEM_HEIGHT,
+        left: 0,
+        right: 0,
+        backgroundColor: '#e8e8e8',
+        borderRadius: 8,
+      }} />
+      <ScrollView
+        ref={ref}
+        showsVerticalScrollIndicator={false}
+        snapToInterval={ITEM_HEIGHT}
+        decelerationRate="fast"
+        contentContainerStyle={{ paddingVertical: ITEM_HEIGHT }}
+        onLayout={() => {
+          if (!laid.current) {
+            laid.current = true;
+            scrollToIndex(initialIndex);
+          }
+        }}
+        onMomentumScrollEnd={(e) => onChange(items[pickIndex(e.nativeEvent.contentOffset.y)])}
+        onScrollEndDrag={(e) => onChange(items[pickIndex(e.nativeEvent.contentOffset.y)])}
+      >
+        {items.map((v) => (
+          <View key={v} style={{ height: ITEM_HEIGHT, justifyContent: 'center', alignItems: 'center' }}>
+            <Text style={{ fontSize: 22, color: '#333' }}>
+              {String(v).padStart(2, '0')}
+            </Text>
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
 export default function ScheduleScreen() {
   const currentDevice = useDeviceStore((state) => state.currentDevice);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
@@ -30,8 +88,7 @@ export default function ScheduleScreen() {
   const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
   
   // Form state
-  const [hour, setHour] = useState(8);
-  const [minute, setMinute] = useState(0);
+  const [time, setTime] = useState(() => { const d = new Date(); d.setHours(8, 0, 0, 0); return d; });
   const [amount, setAmount] = useState(1);
 
   useEffect(() => {
@@ -55,7 +112,7 @@ export default function ScheduleScreen() {
   const handleSave = async () => {
     if (!currentDevice) return;
 
-    const newSchedule = { hour, minute, amount };
+    const newSchedule = { hour: time.getHours(), minute: time.getMinutes(), amount };
     let updatedSchedules: Schedule[];
 
     if (editingSchedule) {
@@ -113,25 +170,24 @@ export default function ScheduleScreen() {
   };
 
   const openEditModal = (schedule: Schedule) => {
-    setHour(schedule.hour);
-    setMinute(schedule.minute);
+    const d = new Date();
+    d.setHours(schedule.hour, schedule.minute, 0, 0);
+    setTime(d);
     setAmount(schedule.amount);
     setEditingSchedule(schedule);
     setModalVisible(true);
   };
 
   const resetForm = () => {
-    setHour(8);
-    setMinute(0);
+    const d = new Date();
+    d.setHours(8, 0, 0, 0);
+    setTime(d);
     setAmount(1);
     setEditingSchedule(null);
   };
 
   const formatTime = (hour: number, minute: number) => {
-    const h = hour % 12 || 12;
-    const ampm = hour < 12 ? 'AM' : 'PM';
-    const m = minute.toString().padStart(2, '0');
-    return `${h}:${m} ${ampm}`;
+    return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
   };
 
   const renderSchedule = ({ item }: { item: Schedule }) => (
@@ -195,38 +251,42 @@ export default function ScheduleScreen() {
             </Text>
 
             <Text style={styles.label}>Time</Text>
-            <View style={styles.timePickerRow}>
-              <Picker
-                selectedValue={hour}
-                onValueChange={setHour}
-                style={styles.picker}
-              >
-                {[...Array(24)].map((_, i) => (
-                  <Picker.Item key={i} label={i.toString().padStart(2, '0')} value={i} />
-                ))}
-              </Picker>
-              <Text style={styles.timeSeparator}>:</Text>
-              <Picker
-                selectedValue={minute}
-                onValueChange={setMinute}
-                style={styles.picker}
-              >
-                {[0, 15, 30, 45].map((m) => (
-                  <Picker.Item key={m} label={m.toString().padStart(2, '0')} value={m} />
-                ))}
-              </Picker>
+            <View style={styles.wheelPickerRow}>
+              <WheelPicker
+                key={`h-${modalVisible}`}
+                items={HOURS}
+                initialIndex={time.getHours()}
+                onChange={(h: number) => { const d = new Date(time); d.setHours(h); setTime(d); }}
+                width={80}
+              />
+              <Text style={styles.wheelSeparator}>:</Text>
+              <WheelPicker
+                key={`m-${modalVisible}`}
+                items={MINUTES}
+                initialIndex={time.getMinutes()}
+                onChange={(m: number) => { const d = new Date(time); d.setMinutes(m); setTime(d); }}
+                width={80}
+              />
             </View>
 
             <Text style={styles.label}>Amount (portions)</Text>
-            <Picker
-              selectedValue={amount}
-              onValueChange={setAmount}
-              style={styles.fullPicker}
-            >
-              {[0.5, 1, 1.5, 2, 2.5, 3].map((a) => (
-                <Picker.Item key={a} label={a.toString()} value={a} />
-              ))}
-            </Picker>
+            <View style={styles.amountSelector}>
+              <TouchableOpacity
+                style={[styles.amountButton, amount <= 1 && styles.amountButtonDisabled]}
+                onPress={() => setAmount((a) => Math.max(1, a - 1))}
+                disabled={amount <= 1}
+              >
+                <Ionicons name="remove" size={24} color={amount <= 1 ? '#ccc' : '#007AFF'} />
+              </TouchableOpacity>
+              <Text style={styles.amountCount}>{amount}</Text>
+              <TouchableOpacity
+                style={[styles.amountButton, amount >= 10 && styles.amountButtonDisabled]}
+                onPress={() => setAmount((a) => Math.min(10, a + 1))}
+                disabled={amount >= 10}
+              >
+                <Ionicons name="add" size={24} color={amount >= 10 ? '#ccc' : '#007AFF'} />
+              </TouchableOpacity>
+            </View>
 
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -330,6 +390,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 24,
+    paddingBottom: 48,
   },
   modalTitle: {
     fontSize: 20,
@@ -344,54 +405,75 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 8,
   },
-  timePickerRow: {
+  wheelPickerRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 16,
   },
-  picker: {
-    flex: 1,
-    height: 150,
-  },
-  fullPicker: {
-    height: 150,
-    marginBottom: 16,
-  },
-  timeSeparator: {
-    fontSize: 24,
+  wheelSeparator: {
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#333',
+    marginHorizontal: 8,
   },
   modalButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     marginTop: 16,
+    gap: 12,
   },
   cancelButton: {
     flex: 1,
-    padding: 16,
-    marginRight: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#ddd',
-    alignItems: 'center',
   },
   cancelButtonText: {
     color: '#666',
     fontSize: 16,
     fontWeight: '600',
+    textAlign: 'center',
   },
   saveButton: {
     flex: 1,
-    padding: 16,
-    marginLeft: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
     borderRadius: 8,
     backgroundColor: '#007AFF',
-    alignItems: 'center',
   },
   saveButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+    textAlign: 'center',
+  },
+  amountSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    marginBottom: 16,
+  },
+  amountButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  amountButtonDisabled: {
+    backgroundColor: '#f9f9f9',
+  },
+  amountCount: {
+    flex: 1,
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
   },
 });

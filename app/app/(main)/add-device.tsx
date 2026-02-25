@@ -11,8 +11,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Device } from 'react-native-ble-plx';
-import { bleService } from '../../services/ble';
+import { bleService, type FoundDevice } from '../../services/ble';
 import { useDeviceStore } from '../../stores/deviceStore';
 
 type Step = 'scan' | 'connect' | 'wifi' | 'complete';
@@ -20,12 +19,11 @@ type Step = 'scan' | 'connect' | 'wifi' | 'complete';
 export default function AddDeviceScreen() {
   const router = useRouter();
   const { addDevice } = useDeviceStore();
-  
+
   const [step, setStep] = useState<Step>('scan');
   const [isScanning, setIsScanning] = useState(false);
-  const [foundDevices, setFoundDevices] = useState<Device[]>([]);
-  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
-  const [isConnecting, setIsConnecting] = useState(false);
+  const [foundDevices, setFoundDevices] = useState<FoundDevice[]>([]);
+  const [selectedDevice, setSelectedDevice] = useState<FoundDevice | null>(null);
   const [ssid, setSsid] = useState('');
   const [wifiPassword, setWifiPassword] = useState('');
   const [isProvisioning, setIsProvisioning] = useState(false);
@@ -48,19 +46,16 @@ export default function AddDeviceScreen() {
     }
   };
 
-  const handleDeviceSelect = async (device: Device) => {
+  const handleDeviceSelect = async (device: FoundDevice) => {
     setSelectedDevice(device);
-    setIsConnecting(true);
     setStep('connect');
 
     try {
-      await bleService.connectToDevice(device.id);
+      await bleService.connectToDevice(device.name);
       setStep('wifi');
     } catch (error: any) {
       Alert.alert('Connection Error', error.message);
       setStep('scan');
-    } finally {
-      setIsConnecting(false);
     }
   };
 

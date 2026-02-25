@@ -11,17 +11,20 @@ import { useDeviceStore } from '../../../stores/deviceStore';
 import mqttService from '../../../services/mqtt';
 import * as api from '../../../services/api';
 
+const MIN_PORTIONS = 1;
+const MAX_PORTIONS = 10;
+
 export default function DeviceControlScreen() {
   const currentDevice = useDeviceStore((state) => state.currentDevice);
   const [tankLevel, setTankLevel] = useState<number | null>(null);
   const [lastFeed, setLastFeed] = useState<string | null>(null);
   const [isFeeding, setIsFeeding] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [portions, setPortions] = useState(1);
 
   useEffect(() => {
     if (!currentDevice) return;
 
-    // Load last known values from DB
     const loadInitialState = async () => {
       try {
         const response = await api.getEvents(currentDevice.device_id, 50, 0);
@@ -73,16 +76,15 @@ export default function DeviceControlScreen() {
 
     Alert.alert(
       'Feed Now',
-      'Dispense one portion of food?',
+      `Dispense ${portions} ${portions === 1 ? 'portion' : 'portions'} of food?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Feed',
           onPress: () => {
             setIsFeeding(true);
-            mqttService.triggerFeed(currentDevice.device_id, 1);
-            
-            // Timeout in case no response
+            mqttService.triggerFeed(currentDevice.device_id, portions);
+
             setTimeout(() => {
               setIsFeeding(false);
             }, 10000);
@@ -133,46 +135,41 @@ export default function DeviceControlScreen() {
 
       {/* Feed Button */}
       <TouchableOpacity
-        style={[styles.feedButton, isFeeding && styles.feedButtonDisabled]}
+        style={[styles.feedButton, (isFeeding || !isConnected) && styles.feedButtonDisabled]}
         onPress={handleFeed}
         disabled={isFeeding || !isConnected}
         activeOpacity={0.8}
       >
-        <Ionicons
-          name={isFeeding ? 'hourglass-outline' : 'restaurant-outline'}
-          size={48}
-          color="#fff"
-        />
+        <Text style={styles.feedButtonEmoji}>
+          {isFeeding ? '⏳' : '🍖🐟'}
+        </Text>
         <Text style={styles.feedButtonText}>
           {isFeeding ? 'Feeding...' : 'Feed Now'}
         </Text>
       </TouchableOpacity>
 
-      {/* Quick Actions */}
-      <View style={styles.quickActions}>
-        <TouchableOpacity
-          style={styles.quickActionButton}
-          onPress={() => {
-            if (currentDevice) {
-              mqttService.triggerFeed(currentDevice.device_id, 0.5);
-            }
-          }}
-          disabled={!isConnected}
-        >
-          <Text style={styles.quickActionText}>Half Portion</Text>
-        </TouchableOpacity>
+      {/* Portion Selector */}
+      <View style={styles.portionContainer}>
+        <Text style={styles.portionLabel}>Portions</Text>
+        <View style={styles.portionSelector}>
+          <TouchableOpacity
+            style={[styles.portionButton, portions <= MIN_PORTIONS && styles.portionButtonDisabled]}
+            onPress={() => setPortions((p) => Math.max(MIN_PORTIONS, p - 1))}
+            disabled={portions <= MIN_PORTIONS}
+          >
+            <Ionicons name="remove" size={24} color={portions <= MIN_PORTIONS ? '#ccc' : '#007AFF'} />
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.quickActionButton}
-          onPress={() => {
-            if (currentDevice) {
-              mqttService.triggerFeed(currentDevice.device_id, 2);
-            }
-          }}
-          disabled={!isConnected}
-        >
-          <Text style={styles.quickActionText}>Double Portion</Text>
-        </TouchableOpacity>
+          <Text style={styles.portionCount}>{portions}</Text>
+
+          <TouchableOpacity
+            style={[styles.portionButton, portions >= MAX_PORTIONS && styles.portionButtonDisabled]}
+            onPress={() => setPortions((p) => Math.min(MAX_PORTIONS, p + 1))}
+            disabled={portions >= MAX_PORTIONS}
+          >
+            <Ionicons name="add" size={24} color={portions >= MAX_PORTIONS ? '#ccc' : '#007AFF'} />
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -207,11 +204,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
     marginTop: 8,
+    textAlign: 'center',
   },
   statusLabel: {
     fontSize: 12,
     color: '#666',
     marginTop: 4,
+    textAlign: 'center',
   },
   connectionStatus: {
     flexDirection: 'row',
@@ -246,29 +245,54 @@ const styles = StyleSheet.create({
     backgroundColor: '#ccc',
     shadowColor: '#ccc',
   },
+  feedButtonEmoji: {
+    fontSize: 48,
+  },
   feedButtonText: {
     color: '#fff',
     fontSize: 20,
     fontWeight: 'bold',
     marginTop: 8,
+    textAlign: 'center',
   },
-  quickActions: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 24,
+  portionContainer: {
+    alignItems: 'center',
+    marginTop: 32,
   },
-  quickActionButton: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    marginHorizontal: 8,
-    borderWidth: 1,
-    borderColor: '#007AFF',
-  },
-  quickActionText: {
-    color: '#007AFF',
+  portionLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    color: '#666',
+    marginBottom: 12,
+  },
+  portionSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  portionButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#f0f0f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  portionButtonDisabled: {
+    backgroundColor: '#f9f9f9',
+  },
+  portionCount: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#333',
+    width: 64,
+    textAlign: 'center',
   },
 });

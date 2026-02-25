@@ -25,7 +25,7 @@ export default function DeviceLayout() {
         options={{
           title: 'Control',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="game-controller-outline" size={size} color={color} />
+            <Ionicons name="options-outline" size={size} color={color} />
           ),
         }}
       />
@@ -41,7 +41,7 @@ export default function DeviceLayout() {
       <Tabs.Screen
         name="cats"
         options={{
-          title: 'Cats',
+          title: 'Pets',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="paw-outline" size={size} color={color} />
           ),

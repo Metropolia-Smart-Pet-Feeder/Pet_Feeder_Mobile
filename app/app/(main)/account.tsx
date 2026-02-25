@@ -70,6 +70,9 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
+    alignSelf: 'stretch',
+    textAlign: 'center',
+    paddingHorizontal: 16,
   },
   email: {
     fontSize: 14,
