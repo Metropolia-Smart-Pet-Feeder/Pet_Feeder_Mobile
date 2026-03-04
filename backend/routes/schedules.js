@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db/database');
 const auth = require('../middleware/auth');
-const mqtt = require('../mqtt/client');
 
 router.use(auth);
 
@@ -54,14 +53,6 @@ router.put('/device/:device_id', async (req, res) => {
         if (savedSchedules.error) {
             return res.status(400).json({ error: savedSchedules.error });
         }
-
-        // Send to device via MQTT
-        const topic = `petfeeder/${device_id}/command`;
-        const payload = JSON.stringify({
-            type: 'schedule',
-            schedules: savedSchedules
-        });
-        mqtt.publish(topic, payload);
 
         res.json({ message: 'Schedules updated', schedules: savedSchedules });
 
