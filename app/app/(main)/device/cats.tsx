@@ -10,6 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useDeviceStore } from '../../../stores/deviceStore';
 import mqttService from '../../../services/mqtt';
@@ -24,6 +25,7 @@ interface Cat {
 type AddStep = 'scanning' | 'naming';
 
 export default function CatsScreen() {
+  const insets = useSafeAreaInsets();
   const currentDevice = useDeviceStore((state) => state.currentDevice);
   const [cats, setCats] = useState<Cat[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -73,6 +75,14 @@ export default function CatsScreen() {
 
     const listener = (_topic: string, payload: any) => {
       if (payload.type === 'cat_identified' && payload.rfid) {
+        const existing = cats.find((c) => c.rfid === payload.rfid);
+        if (existing) {
+          Alert.alert(
+            'Already Registered',
+            `This tag is already registered to "${existing.name}". Please scan a different tag.`
+          );
+          return; // Keep listening
+        }
         stopRfidListener();
         setRfidTag(payload.rfid);
         setAddStep('naming');
@@ -105,7 +115,7 @@ export default function CatsScreen() {
 
   const handleDelete = (cat: Cat) => {
     Alert.alert(
-      'Remove Cat',
+      'Remove Pet',
       `Are you sure you want to remove ${cat.name}?`,
       [
         { text: 'Cancel', style: 'cancel' },
@@ -154,7 +164,7 @@ export default function CatsScreen() {
     if (editingCat) {
       return (
         <>
-          <Text style={styles.modalTitle}>Edit Cat</Text>
+          <Text style={styles.modalTitle}>Edit Pet</Text>
           <TextInput
             style={styles.input}
             placeholder="Cat Name"
@@ -184,12 +194,12 @@ export default function CatsScreen() {
             </View>
             <Text style={styles.scanTitle}>Scan RFID Tag</Text>
             <Text style={styles.scanDescription}>
-              Hold your cat's RFID tag near the feeder reader and wait for it to be detected
+              Hold your cat's RFID tag near the food bowl
             </Text>
             <ActivityIndicator size="large" color="#007AFF" style={styles.scanSpinner} />
             <Text style={styles.scanWaiting}>Waiting for tag...</Text>
           </View>
-          <TouchableOpacity style={styles.cancelButton} onPress={closeModal}>
+          <TouchableOpacity style={styles.scanCancelButton} onPress={closeModal}>
             <Text style={styles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>
         </>
@@ -275,7 +285,7 @@ export default function CatsScreen() {
         onRequestClose={closeModal}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { paddingBottom: 24 + insets.bottom }]}>
             {renderModalContent()}
           </View>
         </View>
@@ -450,29 +460,41 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    padding: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
     marginRight: 8,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#ddd',
-    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scanCancelButton: {
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    justifyContent: 'center',
   },
   cancelButtonText: {
     color: '#666',
     fontSize: 16,
     fontWeight: '600',
+    textAlign: 'center',
   },
   saveButton: {
     flex: 1,
-    padding: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
     marginLeft: 8,
     borderRadius: 8,
     backgroundColor: '#007AFF',
-    alignItems: 'center',
+    justifyContent: 'center',
   },
   saveButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+    textAlign: 'center',
   },
 });

@@ -91,7 +91,7 @@ export default function AddDeviceScreen() {
       <Ionicons name="bluetooth" size={64} color="#007AFF" />
       <Text style={styles.stepTitle}>Find Your Feeder</Text>
       <Text style={styles.stepDescription}>
-        Make sure your Pet Feeder is in pairing mode (LED blinking blue)
+        Press CONNECT on your pet feeder
       </Text>
 
       {foundDevices.length > 0 && (
@@ -226,6 +226,7 @@ const styles = StyleSheet.create({
     color: '#333',
     marginTop: 24,
     marginBottom: 8,
+    textAlign: 'center',
   },
   stepDescription: {
     fontSize: 16,
@@ -287,5 +288,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+    textAlign: 'center',
   },
 });

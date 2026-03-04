@@ -24,10 +24,12 @@ client.on('message', async (topic, message) => {
 
         const payload = JSON.parse(message.toString());
 
-        // For cat_identified events, resolve the cat name from the rfid
+        // For cat_identified events, resolve the cat name from the rfid.
+        // Skip storing if the RFID isn't registered yet (registration scan).
         if (payload.type === 'cat_identified' && payload.rfid) {
             const cat = await db.getCatByRfid(deviceId, payload.rfid);
-            payload.cat_name = cat ? cat.name : 'Unknown cat';
+            if (!cat) return;
+            payload.cat_name = cat.name;
         }
 
         // Log the event to database
