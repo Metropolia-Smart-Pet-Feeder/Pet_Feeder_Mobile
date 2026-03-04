@@ -1,6 +1,8 @@
 const mqtt = require('mqtt');
 const db = require('../db/database');
 
+const registrationModeDevices = new Set();
+
 const client = mqtt.connect(process.env.MQTT_BROKER_URL, {
     username: process.env.MQTT_USERNAME,
     password: process.env.MQTT_PASSWORD
@@ -25,8 +27,10 @@ client.on('message', async (topic, message) => {
         const payload = JSON.parse(message.toString());
 
         // For cat_identified events, resolve the cat name from the rfid.
-        // Skip storing if the RFID isn't registered yet (registration scan).
+        // Skip storing if the RFID isn't registered yet, or if the app is
+        // currently in cat registration mode for this device.
         if (payload.type === 'cat_identified' && payload.rfid) {
+            if (registrationModeDevices.has(deviceId)) return;
             const cat = await db.getCatByRfid(deviceId, payload.rfid);
             if (!cat) return;
             payload.cat_name = cat.name;
@@ -43,5 +47,10 @@ client.on('message', async (topic, message) => {
 client.on('error', (err) => {
     console.error('MQTT client error:', err);
 });
+
+client.setRegistrationMode = (deviceId, active) => {
+    if (active) registrationModeDevices.add(deviceId);
+    else registrationModeDevices.delete(deviceId);
+};
 
 module.exports = client;

@@ -142,6 +142,7 @@ export default function CatsScreen() {
     setCatName('');
     setAddStep('scanning');
     setModalVisible(true);
+    if (currentDevice) api.setRegistrationMode(currentDevice.device_id, true).catch(() => {});
     startRfidScan();
   };
 
@@ -154,6 +155,7 @@ export default function CatsScreen() {
 
   const closeModal = () => {
     stopRfidListener();
+    if (currentDevice) api.setRegistrationMode(currentDevice.device_id, false).catch(() => {});
     setModalVisible(false);
     setEditingCat(null);
     setRfidTag('');

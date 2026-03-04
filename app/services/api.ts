@@ -40,6 +40,9 @@ export const renameDevice = (device_id: string, name: string) =>
 export const removeDevice = (device_id: string) =>
   api.delete(`/devices/${device_id}`);
 
+export const setRegistrationMode = (device_id: string, active: boolean) =>
+  api.put(`/devices/${device_id}/registration-mode`, { active });
+
 // Cats
 export const getCats = (device_id: string) =>
   api.get(`/cats/device/${device_id}`);

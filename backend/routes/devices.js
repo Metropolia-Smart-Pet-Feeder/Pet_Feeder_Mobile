@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db/database');
 const auth = require('../middleware/auth');
+const mqttClient = require('../mqtt/client');
 
 router.use(auth);
 
@@ -89,6 +90,27 @@ router.delete('/:device_id', async (req, res) => {
 
     } catch (err) {
         console.error('Unlink device error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Set registration mode — suppresses cat_identified event storage while active
+router.put('/:device_id/registration-mode', async (req, res) => {
+    try {
+        const { device_id } = req.params;
+        const { active } = req.body;
+        const userId = req.user.id;
+
+        const hasAccess = await db.isUserLinkedToDevice(userId, device_id);
+        if (!hasAccess) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+
+        mqttClient.setRegistrationMode(device_id, !!active);
+        res.json({ ok: true });
+
+    } catch (err) {
+        console.error('Registration mode error:', err);
         res.status(500).json({ error: 'Server error' });
     }
 });
