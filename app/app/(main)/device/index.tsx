@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useDeviceStore } from '../../../stores/deviceStore';
 import mqttService from '../../../services/mqtt';
@@ -15,6 +16,7 @@ const MIN_PORTIONS = 1;
 const MAX_PORTIONS = 10;
 
 export default function DeviceControlScreen() {
+  const router = useRouter();
   const currentDevice = useDeviceStore((state) => state.currentDevice);
   const [tankLevel, setTankLevel] = useState<number | null>(null);
   const [lastFeed, setLastFeed] = useState<string | null>(null);
@@ -171,6 +173,15 @@ export default function DeviceControlScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* WiFi Reprovisioning */}
+      <TouchableOpacity
+        style={styles.wifiButton}
+        onPress={() => router.push('../reprovision-wifi' as any)}
+      >
+        <Ionicons name="wifi-outline" size={18} color="#666" style={{ marginRight: 8 }} />
+        <Text style={styles.wifiButtonText}>Reconnect WiFi</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -294,5 +305,16 @@ const styles = StyleSheet.create({
     color: '#333',
     width: 64,
     textAlign: 'center',
+  },
+  wifiButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 24,
+    paddingVertical: 12,
+  },
+  wifiButtonText: {
+    fontSize: 14,
+    color: '#666',
   },
 });

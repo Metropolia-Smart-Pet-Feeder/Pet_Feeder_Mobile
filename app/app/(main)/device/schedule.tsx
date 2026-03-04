@@ -127,7 +127,7 @@ export default function ScheduleScreen() {
       await api.updateSchedules(currentDevice.device_id, updatedSchedules);
 
       // Also send to device via MQTT
-      mqttService.updateSchedule(currentDevice.device_id, updatedSchedules);
+      mqttService.updateSchedule(currentDevice.device_id, updatedSchedules.map(({ hour, minute, amount }) => ({ hour, minute, amount })));
 
       setModalVisible(false);
       resetForm();
@@ -152,7 +152,7 @@ export default function ScheduleScreen() {
             const updatedSchedules = schedules.filter((s) => s.id !== schedule.id);
             try {
               await api.updateSchedules(currentDevice.device_id, updatedSchedules);
-              mqttService.updateSchedule(currentDevice.device_id, updatedSchedules);
+              mqttService.updateSchedule(currentDevice.device_id, updatedSchedules.map(({ hour, minute, amount }) => ({ hour, minute, amount })));
               await fetchSchedules();
             } catch (error) {
               Alert.alert('Error', 'Failed to delete schedule');

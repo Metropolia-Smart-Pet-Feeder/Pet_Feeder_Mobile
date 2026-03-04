@@ -47,7 +47,7 @@ class BleService {
     }
 
     const devices = await ESPProvisionManager.searchESPDevices(
-      'PROV_PETFEEDER_',
+      'PETFEEDER_',
       ESPTransport.ble,
       ESPSecurity.secure
     );

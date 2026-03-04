@@ -94,6 +94,20 @@ class MqttService {
     this.client?.unsubscribe(topic);
   }
 
+  removeDeviceListener(deviceId: string, callback: EventCallback): void {
+    const topic = `petfeeder/${deviceId}/event`;
+    const callbacks = this.subscribers.get(topic);
+    if (callbacks) {
+      const index = callbacks.indexOf(callback);
+      if (index !== -1) callbacks.splice(index, 1);
+      if (callbacks.length === 0) {
+        this.subscribers.delete(topic);
+        this.subscribedTopics.delete(topic);
+        this.client?.unsubscribe(topic);
+      }
+    }
+  }
+
   sendCommand(deviceId: string, command: object): void {
     const topic = `petfeeder/${deviceId}/command`;
     if (this.client?.connected) {
@@ -106,11 +120,12 @@ class MqttService {
 
   // Convenience methods
   triggerFeed(deviceId: string, amount: number): void {
-    this.sendCommand(deviceId, { action: 'feed', amount });
+    this.sendCommand(deviceId, { type: 'feed', amount });
   }
 
   updateSchedule(deviceId: string, schedules: Array<{ hour: number; minute: number; amount: number }>): void {
-    this.sendCommand(deviceId, { action: 'schedule', schedules });
+    const utc_offset_minutes = -new Date().getTimezoneOffset();
+    this.sendCommand(deviceId, { type: 'schedule', schedules, utc_offset_minutes });
   }
 
   isConnected(): boolean {

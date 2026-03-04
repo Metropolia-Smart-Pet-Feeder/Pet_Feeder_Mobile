@@ -21,9 +21,16 @@ export default function MainLayout() {
           presentation: 'modal',
         }} 
       />
-      <Stack.Screen 
-        name="device" 
-        options={{ headerShown: false }} 
+      <Stack.Screen
+        name="device"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="reprovision-wifi"
+        options={{
+          title: 'Change WiFi',
+          presentation: 'modal',
+        }}
       />
     </Stack>
   );
