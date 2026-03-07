@@ -211,7 +211,7 @@ export default function CatsScreen() {
     // addStep === 'naming'
     return (
       <>
-        <Text style={styles.modalTitle}>Name Your Cat</Text>
+        <Text style={styles.modalTitle}>Name Your Pet</Text>
         <View style={styles.tagDetectedRow}>
           <Ionicons name="checkmark-circle" size={20} color="#34C759" />
           <Text style={styles.tagDetectedText}>Tag detected: {rfidTag}</Text>
@@ -264,13 +264,13 @@ export default function CatsScreen() {
         data={cats}
         renderItem={renderCat}
         keyExtractor={(item) => item.rfid}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, cats.length === 0 && { flexGrow: 1 }]}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="paw-outline" size={64} color="#ccc" />
-            <Text style={styles.emptyText}>No cats registered</Text>
+            <Text style={styles.emptyText}>No pet registered</Text>
             <Text style={styles.emptySubtext}>
-              Tap + and scan your cat's RFID tag to add them
+              Tap + and scan your pet's RFID tag to add them
             </Text>
           </View>
         }
@@ -348,14 +348,17 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   emptyContainer: {
+    flex: 1,
     alignItems: 'center',
-    paddingTop: 64,
+    justifyContent: 'center',
   },
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
     color: '#666',
     marginTop: 16,
+    alignSelf: 'stretch',
+    textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 14,

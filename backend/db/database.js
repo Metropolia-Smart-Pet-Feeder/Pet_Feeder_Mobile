@@ -310,6 +310,72 @@ async function createPhoto(deviceId, filename, filePath) {
     return { id: result.insertId, device_id: device.id, filename, path: filePath };
 }
 
+async function updatePhotoLabel(photoId, label) {
+    await pool.query('UPDATE photos SET recognized_label = ? WHERE id = ?', [label, photoId]);
+}
+
+// Recognized cats operations
+async function createRecognizedCat(deviceId, label, name) {
+    const device = await getDeviceByDeviceId(deviceId);
+    if (!device) return { error: 'Device not found' };
+
+    const [result] = await pool.query(
+        'INSERT INTO recognized_cats (device_id, label, name) VALUES (?, ?, ?)',
+        [device.id, label, name]
+    );
+    return { id: result.insertId, device_id: device.id, label, name, rfid: null };
+}
+
+async function getRecognizedCatsByDevice(deviceId) {
+    const device = await getDeviceByDeviceId(deviceId);
+    if (!device) return [];
+
+    const [rows] = await pool.query(
+        'SELECT id, label, name, rfid, created_at FROM recognized_cats WHERE device_id = ?',
+        [device.id]
+    );
+    return rows;
+}
+
+async function getRecognizedCatByLabel(deviceId, label) {
+    const device = await getDeviceByDeviceId(deviceId);
+    if (!device) return null;
+
+    const [rows] = await pool.query(
+        'SELECT * FROM recognized_cats WHERE device_id = ? AND label = ?',
+        [device.id, label]
+    );
+    return rows[0] || null;
+}
+
+async function updateRecognizedCat(deviceId, label, fields) {
+    const device = await getDeviceByDeviceId(deviceId);
+    if (!device) return null;
+
+    const updates = [];
+    const values = [];
+    if (fields.name !== undefined) { updates.push('name = ?'); values.push(fields.name); }
+    if (fields.rfid !== undefined) { updates.push('rfid = ?'); values.push(fields.rfid); }
+    if (!updates.length) return getRecognizedCatByLabel(deviceId, label);
+
+    values.push(device.id, label);
+    await pool.query(
+        `UPDATE recognized_cats SET ${updates.join(', ')} WHERE device_id = ? AND label = ?`,
+        values
+    );
+    return getRecognizedCatByLabel(deviceId, label);
+}
+
+async function deleteRecognizedCat(deviceId, label) {
+    const device = await getDeviceByDeviceId(deviceId);
+    if (!device) return;
+
+    await pool.query(
+        'DELETE FROM recognized_cats WHERE device_id = ? AND label = ?',
+        [device.id, label]
+    );
+}
+
 async function getPhotosByDeviceId(deviceId) {
     const device = await getDeviceByDeviceId(deviceId);
     if (!device) return [];
@@ -358,6 +424,12 @@ module.exports = {
     getEventsByType,
     deleteOldEvents,
     createPhoto,
+    updatePhotoLabel,
     getPhotosByDeviceId,
-    getPhotoById
+    getPhotoById,
+    createRecognizedCat,
+    getRecognizedCatsByDevice,
+    getRecognizedCatByLabel,
+    updateRecognizedCat,
+    deleteRecognizedCat,
 };

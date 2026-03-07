@@ -2,8 +2,38 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const db = require('../db/database');
 const auth = require('../middleware/auth');
+
+const RECOGNITION_SERVICE_URL = process.env.RECOGNITION_SERVICE_URL || 'http://127.0.0.1:5004';
+
+async function runRecognition(deviceId, photoId, filePath) {
+    try {
+        const fileBuffer = fs.readFileSync(filePath);
+        const blob = new Blob([fileBuffer], { type: 'image/jpeg' });
+        const form = new FormData();
+        form.append('image', blob, 'cat.jpg');
+
+        const res = await fetch(`${RECOGNITION_SERVICE_URL}/identify`, { method: 'POST', body: form });
+        const result = await res.json();
+
+        if (!result.success || result.pet_id === 'unknown') return;
+
+        await db.updatePhotoLabel(photoId, result.pet_id);
+
+        const cat = await db.getRecognizedCatByLabel(deviceId, result.pet_id);
+        if (cat && cat.name) {
+            await db.createEvent(deviceId, 'cat_identified', {
+                cat_name: cat.name,
+                source: 'camera',
+                label: result.pet_id,
+            });
+        }
+    } catch (err) {
+        console.error('Recognition error:', err.message);
+    }
+}
 
 const storage = multer.diskStorage({
     destination: './uploads/photos',
@@ -30,6 +60,9 @@ router.post('/upload/:device_id', upload.single('photo'), async (req, res) => {
         }
 
         res.status(201).json({ message: 'Photo uploaded', photo });
+
+        // Run recognition in background after responding
+        runRecognition(device_id, photo.id, req.file.path);
 
     } catch (err) {
         console.error('Photo upload error:', err);

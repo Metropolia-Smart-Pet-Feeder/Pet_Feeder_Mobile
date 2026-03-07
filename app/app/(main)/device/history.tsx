@@ -124,13 +124,13 @@ export default function HistoryScreen() {
       case 'dispense':
         return `Dispensed ${event.data?.amount || 1} portion(s)`;
       case 'cat_identified':
-        return `${event.data?.cat_name || 'Unknown cat'} detected`;
+        return `${event.data?.cat_name || 'Unknown cat'} was here`;
       case 'cat_came':
-        return 'A cat arrived at the feeder';
+        return 'Someone approached the feeder';
       case 'cat_leave':
-        return 'A cat left the feeder';
+        return 'Someone left the feeder';
       case 'food_eaten':
-        return `${event.data?.amount || 0}g of food consumed`;
+        return `${parseFloat(event.data?.amount || 0).toFixed(1)}g of food consumed`;
       case 'tank_level':
         return `Tank level: ${event.data?.level || 0}%`;
       case 'error':

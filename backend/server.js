@@ -8,6 +8,7 @@ const catRoutes = require('./routes/cats');
 const scheduleRoutes = require('./routes/schedules');
 const eventRoutes = require('./routes/events');
 const photoRoutes = require('./routes/photos')
+const recognizedCatRoutes = require('./routes/recognized-cats')
 
 // Initialize MQTT client (starts connection and subscribes to events)
 require('./mqtt/client');
@@ -23,6 +24,7 @@ app.use('/api/cats', catRoutes);
 app.use('/api/schedules', scheduleRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/photos', photoRoutes);
+app.use('/api/recognized-cats', recognizedCatRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

@@ -57,6 +57,18 @@ CREATE TABLE IF NOT EXISTS photos (
     device_id INT NOT NULL,
     filename VARCHAR(255) NOT NULL,
     path VARCHAR(500) NOT NULL,
+    recognized_label VARCHAR(100) DEFAULT NULL,
     captured_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS recognized_cats (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    device_id INT NOT NULL,
+    label VARCHAR(100) NOT NULL,
+    name VARCHAR(100),
+    rfid VARCHAR(50) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_device_label (device_id, label)
 );
