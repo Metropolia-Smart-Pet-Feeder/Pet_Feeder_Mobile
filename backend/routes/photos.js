@@ -9,6 +9,7 @@ const auth = require('../middleware/auth');
 const RECOGNITION_SERVICE_URL = process.env.RECOGNITION_SERVICE_URL || 'http://127.0.0.1:5004';
 
 async function runRecognition(deviceId, photoId, filePath) {
+    console.log(`Recognition: starting for photo ${photoId}, device ${deviceId}`);
     try {
         const fileBuffer = fs.readFileSync(filePath);
         const blob = new Blob([fileBuffer], { type: 'image/jpeg' });
@@ -17,6 +18,7 @@ async function runRecognition(deviceId, photoId, filePath) {
 
         const res = await fetch(`${RECOGNITION_SERVICE_URL}/identify`, { method: 'POST', body: form });
         const result = await res.json();
+        console.log(`Recognition: result for photo ${photoId}:`, result);
 
         if (!result.success || result.pet_id === 'unknown') return;
 
@@ -31,7 +33,7 @@ async function runRecognition(deviceId, photoId, filePath) {
             });
         }
     } catch (err) {
-        console.error('Recognition error:', err.message);
+        console.error('Recognition error:', err);
     }
 }
 
