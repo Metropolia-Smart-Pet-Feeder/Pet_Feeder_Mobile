@@ -105,6 +105,8 @@ router.delete('/:rfid', async (req, res) => {
         }
 
         await db.deleteCat(device_id, rfid);
+        // Unlink any recognized cat that was matched to this RFID
+        await db.unlinkRecognizedCatByRfid(device_id, rfid);
         res.json({ message: 'Cat deleted' });
 
     } catch (err) {

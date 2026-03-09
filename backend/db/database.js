@@ -314,6 +314,40 @@ async function updatePhotoLabel(photoId, label) {
     await pool.query('UPDATE photos SET recognized_label = ? WHERE id = ?', [label, photoId]);
 }
 
+async function getUnlinkedLabelPhotos(deviceId) {
+    const device = await getDeviceByDeviceId(deviceId);
+    if (!device) return [];
+
+    const [rows] = await pool.query(
+        `SELECT p.id, p.filename, p.recognized_label
+         FROM photos p
+         WHERE p.device_id = ?
+           AND p.recognized_label IS NOT NULL
+           AND NOT EXISTS (
+               SELECT 1 FROM recognized_cats rc
+               WHERE rc.device_id = ? AND rc.label = p.recognized_label AND rc.rfid IS NOT NULL
+           )
+           AND p.id = (
+               SELECT MIN(p2.id) FROM photos p2
+               WHERE p2.device_id = ? AND p2.recognized_label = p.recognized_label
+           )`,
+        [device.id, device.id, device.id]
+    );
+    return rows;
+}
+
+async function upsertRecognizedCat(deviceId, label, name, rfid) {
+    const device = await getDeviceByDeviceId(deviceId);
+    if (!device) return { error: 'Device not found' };
+
+    await pool.query(
+        `INSERT INTO recognized_cats (device_id, label, name, rfid) VALUES (?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE name = VALUES(name), rfid = VALUES(rfid)`,
+        [device.id, label, name, rfid]
+    );
+    return getRecognizedCatByLabel(deviceId, label);
+}
+
 // Recognized cats operations
 async function createRecognizedCat(deviceId, label, name) {
     const device = await getDeviceByDeviceId(deviceId);
@@ -364,6 +398,37 @@ async function updateRecognizedCat(deviceId, label, fields) {
         values
     );
     return getRecognizedCatByLabel(deviceId, label);
+}
+
+async function getRecognizedCatByRfid(deviceId, rfid) {
+    const device = await getDeviceByDeviceId(deviceId);
+    if (!device) return null;
+
+    const [rows] = await pool.query(
+        'SELECT * FROM recognized_cats WHERE device_id = ? AND rfid = ?',
+        [device.id, rfid]
+    );
+    return rows[0] || null;
+}
+
+async function unlinkRecognizedCatByRfid(deviceId, rfid) {
+    const device = await getDeviceByDeviceId(deviceId);
+    if (!device) return;
+
+    await pool.query(
+        'UPDATE recognized_cats SET rfid = NULL WHERE device_id = ? AND rfid = ?',
+        [device.id, rfid]
+    );
+}
+
+async function unlinkRecognizedCatByLabel(deviceId, label) {
+    const device = await getDeviceByDeviceId(deviceId);
+    if (!device) return;
+
+    await pool.query(
+        'UPDATE recognized_cats SET rfid = NULL WHERE device_id = ? AND label = ?',
+        [device.id, label]
+    );
 }
 
 async function deleteRecognizedCat(deviceId, label) {
@@ -425,6 +490,8 @@ module.exports = {
     deleteOldEvents,
     createPhoto,
     updatePhotoLabel,
+    getUnlinkedLabelPhotos,
+    upsertRecognizedCat,
     getPhotosByDeviceId,
     getPhotoById,
     createRecognizedCat,
@@ -432,4 +499,7 @@ module.exports = {
     getRecognizedCatByLabel,
     updateRecognizedCat,
     deleteRecognizedCat,
+    unlinkRecognizedCatByRfid,
+    unlinkRecognizedCatByLabel,
+    getRecognizedCatByRfid,
 };

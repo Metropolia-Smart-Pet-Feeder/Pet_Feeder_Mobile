@@ -3,6 +3,36 @@ const router = express.Router();
 const db = require('../db/database');
 const auth = require('../middleware/auth');
 
+// Get recognized cat linked to a specific RFID
+router.get('/:device_id/by-rfid/:rfid', auth, async (req, res) => {
+    try {
+        const { device_id, rfid } = req.params;
+        const hasAccess = await db.isUserLinkedToDevice(req.user.id, device_id);
+        if (!hasAccess) return res.status(403).json({ error: 'Access denied' });
+
+        const cat = await db.getRecognizedCatByRfid(device_id, rfid);
+        res.json(cat || null);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Unlink rfid from a label
+router.put('/:device_id/:label/unlink', auth, async (req, res) => {
+    try {
+        const { device_id, label } = req.params;
+        const hasAccess = await db.isUserLinkedToDevice(req.user.id, device_id);
+        if (!hasAccess) return res.status(403).json({ error: 'Access denied' });
+
+        await db.unlinkRecognizedCatByLabel(device_id, label);
+        res.json({ message: 'Unlinked' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 // List recognized cats for a device
 router.get('/:device_id', auth, async (req, res) => {
     try {
@@ -40,18 +70,18 @@ router.post('/:device_id', auth, async (req, res) => {
     }
 });
 
-// Update name or rfid link
+// Upsert name + rfid link (creates row if not exists)
 router.put('/:device_id/:label', auth, async (req, res) => {
     try {
         const { device_id, label } = req.params;
         const { name, rfid } = req.body;
 
+        if (!name || !rfid) return res.status(400).json({ error: 'name and rfid are required' });
+
         const hasAccess = await db.isUserLinkedToDevice(req.user.id, device_id);
         if (!hasAccess) return res.status(403).json({ error: 'Access denied' });
 
-        const cat = await db.updateRecognizedCat(device_id, label, { name, rfid });
-        if (!cat) return res.status(404).json({ error: 'Not found' });
-
+        const cat = await db.upsertRecognizedCat(device_id, label, name, rfid);
         res.json(cat);
     } catch (err) {
         console.error(err);

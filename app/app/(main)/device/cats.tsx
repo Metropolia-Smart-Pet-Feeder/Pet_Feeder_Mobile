@@ -9,6 +9,8 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Image,
+  Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -38,6 +40,13 @@ export default function CatsScreen() {
   const [catName, setCatName] = useState('');
 
   const rfidListenerRef = useRef<((topic: string, payload: any) => void) | null>(null);
+
+  // Photo linking modal state
+  const [linkModalVisible, setLinkModalVisible] = useState(false);
+  const [linkingCat, setLinkingCat] = useState<Cat | null>(null);
+  const [unlinkedPhotos, setUnlinkedPhotos] = useState<{ id: number; filename: string; recognized_label: string }[]>([]);
+  const [linkedRecognizedCat, setLinkedRecognizedCat] = useState<{ label: string; name: string } | null>(null);
+  const [isLoadingPhotos, setIsLoadingPhotos] = useState(false);
 
   useEffect(() => {
     fetchCats();
@@ -134,6 +143,53 @@ export default function CatsScreen() {
         },
       ]
     );
+  };
+
+  const openLinkModal = async (cat: Cat) => {
+    if (!currentDevice) return;
+    setLinkingCat(cat);
+    setLinkedRecognizedCat(null);
+    setLinkModalVisible(true);
+    setIsLoadingPhotos(true);
+    try {
+      const [linkedRes, photosRes] = await Promise.all([
+        api.getRecognizedCatByRfid(currentDevice.device_id, cat.rfid),
+        api.getUnlinkedLabelPhotos(currentDevice.device_id),
+      ]);
+      setLinkedRecognizedCat(linkedRes.data || null);
+      setUnlinkedPhotos(Array.isArray(photosRes.data) ? photosRes.data : []);
+    } catch {
+      Alert.alert('Error', 'Failed to load photos');
+    } finally {
+      setIsLoadingPhotos(false);
+    }
+  };
+
+  const closeLinkModal = () => {
+    setLinkModalVisible(false);
+    setLinkingCat(null);
+    setUnlinkedPhotos([]);
+    setLinkedRecognizedCat(null);
+  };
+
+  const handleLinkPhoto = async (label: string) => {
+    if (!currentDevice || !linkingCat) return;
+    try {
+      await api.linkCatToLabel(currentDevice.device_id, label, linkingCat.name, linkingCat.rfid);
+      closeLinkModal();
+    } catch {
+      Alert.alert('Error', 'Failed to link');
+    }
+  };
+
+  const handleUnlink = async () => {
+    if (!currentDevice || !linkedRecognizedCat) return;
+    try {
+      await api.unlinkCatLabel(currentDevice.device_id, linkedRecognizedCat.label);
+      closeLinkModal();
+    } catch {
+      Alert.alert('Error', 'Failed to unlink');
+    }
   };
 
   const openAddModal = () => {
@@ -236,7 +292,7 @@ export default function CatsScreen() {
   };
 
   const renderCat = ({ item }: { item: Cat }) => (
-    <TouchableOpacity style={styles.catCard} onPress={() => openEditModal(item)}>
+    <TouchableOpacity style={styles.catCard} onPress={() => openLinkModal(item)}>
       <View style={styles.catAvatar}>
         <Ionicons name="paw" size={24} color="#fff" />
       </View>
@@ -244,6 +300,9 @@ export default function CatsScreen() {
         <Text style={styles.catName}>{item.name}</Text>
         <Text style={styles.catRfid}>RFID: {item.rfid}</Text>
       </View>
+      <TouchableOpacity style={styles.editButton} onPress={() => openEditModal(item)}>
+        <Ionicons name="pencil-outline" size={20} color="#666" />
+      </TouchableOpacity>
       <TouchableOpacity style={styles.deleteButton} onPress={() => handleDelete(item)}>
         <Ionicons name="trash-outline" size={20} color="#FF3B30" />
       </TouchableOpacity>
@@ -289,6 +348,63 @@ export default function CatsScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { paddingBottom: 24 + insets.bottom }]}>
             {renderModalContent()}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={linkModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={closeLinkModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { paddingBottom: 24 + insets.bottom }]}>
+            <Text style={styles.modalTitle}>Link Photo to {linkingCat?.name}</Text>
+            {isLoadingPhotos ? (
+              <ActivityIndicator size="large" color="#007AFF" style={{ marginVertical: 32 }} />
+            ) : linkedRecognizedCat ? (
+              <>
+                <View style={styles.linkedState}>
+                  <Ionicons name="checkmark-circle" size={48} color="#34C759" />
+                  <Text style={styles.linkedLabel}>Linked to label: {linkedRecognizedCat.label}</Text>
+                </View>
+                <TouchableOpacity style={styles.unlinkButton} onPress={handleUnlink}>
+                  <Text style={styles.unlinkButtonText}>Unlink</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={styles.linkSubtitle}>Tap a photo that matches this pet</Text>
+                {unlinkedPhotos.length === 0 ? (
+                  <View style={styles.linkEmpty}>
+                    <Ionicons name="images-outline" size={48} color="#ccc" />
+                    <Text style={styles.linkEmptyText}>No unlinked photos available</Text>
+                  </View>
+                ) : (
+                  <FlatList
+                    data={unlinkedPhotos}
+                    numColumns={3}
+                    keyExtractor={(item) => item.recognized_label}
+                    contentContainerStyle={styles.linkGrid}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={styles.linkPhotoCell}
+                        onPress={() => handleLinkPhoto(item.recognized_label)}
+                      >
+                        <Image
+                          source={{ uri: api.getPhotoUrl(currentDevice!.device_id, item.id) }}
+                          style={styles.linkPhotoImage}
+                        />
+                      </TouchableOpacity>
+                    )}
+                  />
+                )}
+              </>
+            )}
+            <TouchableOpacity style={[styles.scanCancelButton, { marginTop: 12 }]} onPress={closeLinkModal}>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -343,6 +459,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999',
     marginTop: 4,
+  },
+  editButton: {
+    padding: 8,
   },
   deleteButton: {
     padding: 8,
@@ -501,5 +620,57 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  linkSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 16,
+    marginTop: -16,
+  },
+  linkGrid: {
+    paddingVertical: 8,
+  },
+  linkPhotoCell: {
+    width: (Dimensions.get('window').width - 48 - 16) / 3,
+    height: (Dimensions.get('window').width - 48 - 16) / 3,
+    margin: 4,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  linkPhotoImage: {
+    width: '100%',
+    height: '100%',
+  },
+  linkEmpty: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  linkEmptyText: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 12,
+  },
+  linkedState: {
+    alignItems: 'center',
+    paddingVertical: 24,
+  },
+  linkedLabel: {
+    fontSize: 15,
+    color: '#333',
+    marginTop: 12,
+    fontWeight: '500',
+  },
+  unlinkButton: {
+    paddingVertical: 14,
+    borderRadius: 8,
+    backgroundColor: '#FF3B30',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  unlinkButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

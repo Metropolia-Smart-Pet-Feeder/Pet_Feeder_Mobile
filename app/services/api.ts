@@ -71,7 +71,20 @@ export const getEvents = (device_id: string, limit = 100, offset = 0) =>
 export const getPhotos = (device_id: string) =>
   api.get(`/photos/device/${device_id}`);
 
+export const getUnlinkedLabelPhotos = (device_id: string) =>
+  api.get(`/photos/device/${device_id}/unlinked-labels`);
+
 export const getPhotoUrl = (device_id: string, photo_id: number) =>
   `${API_URL}/photos/device/${device_id}/${photo_id}?token=${currentToken ?? ''}`;
+
+// Recognized cats
+export const linkCatToLabel = (device_id: string, label: string, name: string, rfid: string) =>
+  api.put(`/recognized-cats/${device_id}/${label}`, { name, rfid });
+
+export const getRecognizedCatByRfid = (device_id: string, rfid: string) =>
+  api.get(`/recognized-cats/${device_id}/by-rfid/${rfid}`);
+
+export const unlinkCatLabel = (device_id: string, label: string) =>
+  api.put(`/recognized-cats/${device_id}/${label}/unlink`);
 
 export default api;

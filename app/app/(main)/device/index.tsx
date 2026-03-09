@@ -98,9 +98,9 @@ export default function DeviceControlScreen() {
 
   const getTankColor = () => {
     if (tankLevel === null) return '#ccc';
-    if (tankLevel > 50) return '#34C759';
-    if (tankLevel > 20) return '#FF9500';
-    return '#FF3B30';
+    if (tankLevel === 1) return '#FF3B30';
+    if (tankLevel === 2) return '#FFCC00';
+    return '#34C759';
   };
 
   return (
@@ -110,7 +110,7 @@ export default function DeviceControlScreen() {
         <View style={styles.statusCard}>
           <Ionicons name="server-outline" size={32} color={getTankColor()} />
           <Text style={styles.statusValue}>
-            {tankLevel !== null ? `${tankLevel}%` : '--'}
+            {tankLevel !== null ? ({ 1: 'Low', 2: 'Med', 3: 'High', 4: 'Full' }[tankLevel] ?? '--') : '--'}
           </Text>
           <Text style={styles.statusLabel}>Tank Level</Text>
         </View>
@@ -211,10 +211,11 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   statusValue: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
     marginTop: 8,
+    alignSelf: 'stretch',
     textAlign: 'center',
   },
   statusLabel: {

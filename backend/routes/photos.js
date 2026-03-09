@@ -72,6 +72,21 @@ router.post('/upload/:device_id', upload.single('photo'), async (req, res) => {
     }
 });
 
+// List one photo per unlinked recognized label
+router.get('/device/:device_id/unlinked-labels', auth, async (req, res) => {
+    try {
+        const { device_id } = req.params;
+        const hasAccess = await db.isUserLinkedToDevice(req.user.id, device_id);
+        if (!hasAccess) return res.status(403).json({ error: 'Access denied' });
+
+        const photos = await db.getUnlinkedLabelPhotos(device_id);
+        res.json(photos);
+    } catch (err) {
+        console.error('Unlinked labels error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 // List photos for a device
 router.get('/device/:device_id', auth, async (req, res) => {
     try {

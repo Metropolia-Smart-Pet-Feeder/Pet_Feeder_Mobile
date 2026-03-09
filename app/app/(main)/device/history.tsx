@@ -98,8 +98,8 @@ export default function HistoryScreen() {
     }
   };
 
-  const getEventColor = (eventType: string) => {
-    switch (eventType) {
+  const getEventColor = (event: FeedingEvent) => {
+    switch (event.type) {
       case 'dispense':
         return '#34C759';
       case 'cat_identified':
@@ -110,8 +110,12 @@ export default function HistoryScreen() {
         return '#FF9500';
       case 'food_eaten':
         return '#34C759';
-      case 'tank_level':
-        return '#007AFF';
+      case 'tank_level': {
+        const level = event.data?.level;
+        if (level === 1) return '#FF3B30';
+        if (level === 2) return '#FFCC00';
+        return '#34C759';
+      }
       case 'error':
         return '#FF3B30';
       default:
@@ -132,7 +136,7 @@ export default function HistoryScreen() {
       case 'food_eaten':
         return `${parseFloat(event.data?.amount || 0).toFixed(1)}g of food consumed`;
       case 'tank_level':
-        return `Tank level: ${event.data?.level || 0}%`;
+        return `Tank level: ${{ 1: 'Low', 2: 'Medium', 3: 'High', 4: 'Full' }[event.data?.level as number] ?? event.data?.level ?? 0}`;
       case 'error':
         return event.data?.message || 'An error occurred';
       default:
@@ -169,7 +173,7 @@ export default function HistoryScreen() {
 
   const renderEvent = ({ item }: { item: FeedingEvent }) => (
     <View style={styles.eventCard}>
-      <View style={[styles.eventIcon, { backgroundColor: getEventColor(item.type) }]}>
+      <View style={[styles.eventIcon, { backgroundColor: getEventColor(item) }]}>
         <Ionicons name={getEventIcon(item.type) as any} size={20} color="#fff" />
       </View>
       <View style={styles.eventInfo}>
