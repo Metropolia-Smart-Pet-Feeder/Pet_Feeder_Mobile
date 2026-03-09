@@ -74,6 +74,9 @@ export const getPhotos = (device_id: string) =>
 export const getUnlinkedLabelPhotos = (device_id: string) =>
   api.get(`/photos/device/${device_id}/unlinked-labels`);
 
+export const getPhotoByLabel = (device_id: string, label: string) =>
+  api.get(`/photos/device/${device_id}/by-label/${encodeURIComponent(label)}`);
+
 export const getPhotoUrl = (device_id: string, photo_id: number) =>
   `${API_URL}/photos/device/${device_id}/${photo_id}?token=${currentToken ?? ''}`;
 

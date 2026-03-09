@@ -87,6 +87,21 @@ router.get('/device/:device_id/unlinked-labels', auth, async (req, res) => {
     }
 });
 
+// Get first photo for a recognized label
+router.get('/device/:device_id/by-label/:label', auth, async (req, res) => {
+    try {
+        const { device_id, label } = req.params;
+        const hasAccess = await db.isUserLinkedToDevice(req.user.id, device_id);
+        if (!hasAccess) return res.status(403).json({ error: 'Access denied' });
+
+        const photo = await db.getPhotoByLabel(device_id, label);
+        res.json(photo || null);
+    } catch (err) {
+        console.error('Get photo by label error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 // List photos for a device
 router.get('/device/:device_id', auth, async (req, res) => {
     try {

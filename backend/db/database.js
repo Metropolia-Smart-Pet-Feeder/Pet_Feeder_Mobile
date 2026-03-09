@@ -452,6 +452,17 @@ async function getPhotosByDeviceId(deviceId) {
     return rows;
 }
 
+async function getPhotoByLabel(deviceId, label) {
+    const device = await getDeviceByDeviceId(deviceId);
+    if (!device) return null;
+
+    const [rows] = await pool.query(
+        'SELECT id, filename FROM photos WHERE device_id = ? AND recognized_label = ? ORDER BY id ASC LIMIT 1',
+        [device.id, label]
+    );
+    return rows[0] || null;
+}
+
 async function getPhotoById(photoId) {
     const [rows] = await pool.query(
         'SELECT * FROM photos WHERE id = ?',
@@ -493,6 +504,7 @@ module.exports = {
     getUnlinkedLabelPhotos,
     upsertRecognizedCat,
     getPhotosByDeviceId,
+    getPhotoByLabel,
     getPhotoById,
     createRecognizedCat,
     getRecognizedCatsByDevice,

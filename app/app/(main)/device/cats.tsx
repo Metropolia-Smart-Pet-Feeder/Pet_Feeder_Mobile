@@ -46,6 +46,7 @@ export default function CatsScreen() {
   const [linkingCat, setLinkingCat] = useState<Cat | null>(null);
   const [unlinkedPhotos, setUnlinkedPhotos] = useState<{ id: number; filename: string; recognized_label: string }[]>([]);
   const [linkedRecognizedCat, setLinkedRecognizedCat] = useState<{ label: string; name: string } | null>(null);
+  const [linkedPhoto, setLinkedPhoto] = useState<{ id: number } | null>(null);
   const [isLoadingPhotos, setIsLoadingPhotos] = useState(false);
 
   useEffect(() => {
@@ -149,6 +150,7 @@ export default function CatsScreen() {
     if (!currentDevice) return;
     setLinkingCat(cat);
     setLinkedRecognizedCat(null);
+    setLinkedPhoto(null);
     setLinkModalVisible(true);
     setIsLoadingPhotos(true);
     try {
@@ -156,8 +158,13 @@ export default function CatsScreen() {
         api.getRecognizedCatByRfid(currentDevice.device_id, cat.rfid),
         api.getUnlinkedLabelPhotos(currentDevice.device_id),
       ]);
-      setLinkedRecognizedCat(linkedRes.data || null);
+      const linked = linkedRes.data || null;
+      setLinkedRecognizedCat(linked);
       setUnlinkedPhotos(Array.isArray(photosRes.data) ? photosRes.data : []);
+      if (linked?.label) {
+        const photoRes = await api.getPhotoByLabel(currentDevice.device_id, linked.label);
+        setLinkedPhoto(photoRes.data || null);
+      }
     } catch {
       Alert.alert('Error', 'Failed to load photos');
     } finally {
@@ -170,6 +177,7 @@ export default function CatsScreen() {
     setLinkingCat(null);
     setUnlinkedPhotos([]);
     setLinkedRecognizedCat(null);
+    setLinkedPhoto(null);
   };
 
   const handleLinkPhoto = async (label: string) => {
@@ -366,8 +374,18 @@ export default function CatsScreen() {
             ) : linkedRecognizedCat ? (
               <>
                 <View style={styles.linkedState}>
-                  <Ionicons name="checkmark-circle" size={48} color="#34C759" />
-                  <Text style={styles.linkedLabel}>Linked to label: {linkedRecognizedCat.label}</Text>
+                  {linkedPhoto ? (
+                    <Image
+                      source={{ uri: api.getPhotoUrl(currentDevice!.device_id, linkedPhoto.id) }}
+                      style={styles.linkedPhotoThumb}
+                    />
+                  ) : (
+                    <Ionicons name="checkmark-circle" size={48} color="#34C759" />
+                  )}
+                  <View style={styles.linkedBadge}>
+                    <Ionicons name="checkmark-circle" size={16} color="#34C759" />
+                    <Text style={styles.linkedBadgeText}>Linked</Text>
+                  </View>
                 </View>
                 <TouchableOpacity style={styles.unlinkButton} onPress={handleUnlink}>
                   <Text style={styles.unlinkButtonText}>Unlink</Text>
@@ -653,13 +671,24 @@ const styles = StyleSheet.create({
   },
   linkedState: {
     alignItems: 'center',
-    paddingVertical: 24,
+    paddingVertical: 16,
   },
-  linkedLabel: {
-    fontSize: 15,
-    color: '#333',
-    marginTop: 12,
-    fontWeight: '500',
+  linkedPhotoThumb: {
+    width: 140,
+    height: 140,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  linkedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
+  linkedBadgeText: {
+    fontSize: 14,
+    color: '#34C759',
+    fontWeight: '600',
   },
   unlinkButton: {
     paddingVertical: 14,
